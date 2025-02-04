@@ -1,23 +1,47 @@
 #include <stdio.h> 
 #include <stdlib.h>
 
-#define LENGTH 0
-#define PRICE 1
+#define LENGTH_INDEX 0
+#define PRICE_INDEX 1
 #define ARR_DIM1 30
 #define ARR_DIM2 2
 
+typedef struct {
 
-/* Prototypes */
+    int cut_length; 
+    int cut_price; 
+    int cut_count;
+    int total_value_of_cut; 
 
-int solveRods(int lengthsPrices[][ARR_DIM2], int remainingLength, int options, int currentPath[], int bestPath[]); 
+} Cut; 
 
-void displayPrompt(int rodLength);
+typedef struct {
 
-int readUserInput(int lengthsPrices[][ARR_DIM2]);
+    int rod_length; 
+    int number_of_options; 
+    int remainder;  
+    int maximum_value_of_cuts;  
+    int* current_cut_counter; 
+    Cut* cut; 
 
-void displayUserInput(int lengthsPrices[][ARR_DIM2], int options);
+} Cut_list; 
 
-void displayResults(int lengthsPrices[][ARR_DIM2], int options, int bestPath[], int maximumValue);
+
+/* Prototypes */ 
+
+void input_lengths_and_prices(int lengths_and_prices[][ARR_DIM2], int* number_of_options);
+
+Cut_list* generate_cut_list_struct(int lengths_and_prices[][ARR_DIM2], int number_of_options, int rod_length);
+
+void solve_rods(Cut_list* optimal_cut_list, int remaining_length, int current_value_of_cuts);
+
+void copy_best_cut_counts(Cut_list* optimal_cut_list);
+
+void calculate_cut_values_and_remainders(Cut_list* opimal_cut_list);
+
+void display_cut_list(Cut_list* optimal_cut_list);
+
+void display_lengths_and_prices(int lengths_and_prices[][ARR_DIM2], int number_of_options); // FOR DEBUG
 
 
 /***************************************************************************/
@@ -29,35 +53,50 @@ void displayResults(int lengthsPrices[][ARR_DIM2], int options, int bestPath[], 
 
 int main(int argc, char *argv[]){
 
-    /* converts the command line argument from char to int */
-    /* and stores the value in supRodLength                */
+    if (argc != 2){
 
-    int rodLength = atoi(argv[1]);
+        printf("Failed to provide a valid rod length");
+        return 1; 
 
-    displayPrompt(rodLength); 
+    }
 
+    int rod_length; 
 
-    /* 2D array to store the lengths and their respective prices */
-    /* options will count the number of elements                 */
+    /* Check if the input is a valid integer */
+    
+    char check_for_char;
 
-    int lengthsPrices[ARR_DIM1][ARR_DIM2] = {0};  
+    if (sscanf_s(argv[1], "%d%c", &rod_length, &check_for_char) != 1 || rod_length <= 0){
+
+        printf("Failed to provide a valid rod length");
+
+        return 1; 
+
+    }
+
+    int lengths_and_prices[ARR_DIM1][ARR_DIM2] = {0};  
    
-    int options = readUserInput(lengthsPrices); 
+    int number_of_options = 0; 
+    
+    input_lengths_and_prices(lengths_and_prices, &number_of_options); 
 
-    /* Display the Lengths and Prices entered by the user */
+    Cut_list* optimal_cut_list = generate_cut_list_struct(lengths_and_prices, number_of_options, rod_length);
 
-    displayUserInput(lengthsPrices, options);
+    int current_value_of_cuts = 0; 
 
-    /* Store the cut count. These are NOT working as intended */
+    int remaining_length = optimal_cut_list->rod_length; 
+    
+    solve_rods(optimal_cut_list, remaining_length, current_value_of_cuts);
 
-    int currentPath[ARR_DIM1] = {0}; 
-    int bestPath[ARR_DIM1] = {0};
+    calculate_cut_values_and_remainders(optimal_cut_list); 
 
-    /* Solve Rod Cutting Problem */
+    display_cut_list(optimal_cut_list); 
 
-    int maximumValue = solveRods(lengthsPrices, rodLength, options, currentPath, bestPath);
+    free(optimal_cut_list->cut);
 
-    displayResults(lengthsPrices, options, bestPath, maximumValue); 
+    free(optimal_cut_list->current_cut_counter); 
+
+    free(optimal_cut_list);
 
     return 0; 
 
@@ -66,144 +105,219 @@ int main(int argc, char *argv[]){
 
 /************* SOLVE_RODS ******************/
 /* This function solves the rod cutting    */
-/* problem using recursion. Every possible */ 
-/* combination of cuts is considered and   */
-/* the maximum sum is returned             */
+/* problem using recursion.                */
+/*                                         */                       
 /*******************************************/
 
-int solveRods(int lengthsPrices[][2], int remainingLength, int options, int currentPath[], int bestPath[]){
+void solve_rods(Cut_list* optimal_cut_list, int remaining_length, int current_value_of_cuts){
 
-    /* Base case. There is no rod length left to cut */
-    /* so the function returns 0                     */
+    if(current_value_of_cuts > optimal_cut_list->maximum_value_of_cuts){
 
-    if (remainingLength <= 0){
+        optimal_cut_list->maximum_value_of_cuts = current_value_of_cuts; 
 
-        return 0; 
+        copy_best_cut_counts(optimal_cut_list);
 
     }
 
-    /* currentMaximum stores the largest sum within each call stack */
-    /* and is updated with the maximum value found, then eventually */ 
-    /* returned up to the previous call stack                       */
+    if (remaining_length <= 0){
 
-    int currentMaximum = 0; 
+        return; 
 
-    for (int i = 0; i < options; i++){
+    }
 
-        currentPath[i]++; 
-        
-        /* Length of the cut must be less than or equal to the remaining length */
-        /* to be considered a valid cut, and will continue the recusive call   */
 
-        if (lengthsPrices[i][LENGTH] <= remainingLength){
+    for (int current_cut = 0; current_cut < optimal_cut_list->number_of_options; current_cut++){
 
+        if (optimal_cut_list->cut[current_cut].cut_length <= remaining_length){
+
+            optimal_cut_list->current_cut_counter[current_cut]++; 
+
+            /* These variables are intended to simplify the parameters being passed for readability */
+
+            int remaining_length_after_this_cut = remaining_length - optimal_cut_list->cut[current_cut].cut_length;
+
+            int value_of_cuts_after_this_cut = current_value_of_cuts + optimal_cut_list->cut[current_cut].cut_price;
+
+            solve_rods(optimal_cut_list, remaining_length_after_this_cut, value_of_cuts_after_this_cut);      
+
+            optimal_cut_list->current_cut_counter[current_cut]--; 
             
-            int newMaximum = lengthsPrices[i][PRICE] + solveRods(lengthsPrices, 
-                remainingLength - lengthsPrices[i][LENGTH], options, currentPath, bestPath); 
-            
-            
-            if (newMaximum >= currentMaximum){
-
-                currentMaximum = newMaximum;
-
-
-                /* Copy contents of currentPath to bestPath */
-
-                for (int j = 0; j < options; j++){
-
-                    bestPath[j] = currentPath[j]; 
-
-                }
-
-            }
-
         }
 
-        currentPath[i]--;
-
     }
 
-    return currentMaximum; 
+    return;  
  
 }
 
-/**********DISPLAY_RESULTS *****************/
-/* This function prompts the user to enter */
-/* the different sized cuts and prices     */
-/*******************************************/
 
-void displayPrompt(int rodLength){
-
-    printf("\nSupplied Rod Length: %d\n\n", rodLength); 
-
-    /* Prompts the user to enter values in a specified format */
-
-    printf("Enter Different Sized Cuts and Prices\n");
-    printf("Format is 'LENGTH, PRICE'\n"); 
-    printf("Enter 'CTRL + D' or A Single Integer Value to Stop\n");
-    printf("=========================\n\n");
-
-}
-
-/**********READ_USER_INPUT *****************/
+/**********INPUT_LENGHTS_AND_PRICES*********/
 /* This function reads the user input and  */
 /* stores it in a 2D array                 */
+/*                                         */
+/* Output Parameters: number_of_options    */
 /*******************************************/
 
-int readUserInput(int lengthsPrices[][ARR_DIM2]){
+void input_lengths_and_prices(int lengths_and_prices[][ARR_DIM2], int* number_of_options){
 
-    int options = 0;
+    char buffer[100]; 
 
-    while(scanf("%d, %d", &lengthsPrices[options][LENGTH], &lengthsPrices[options][PRICE]) == 2){
+    int length, price;
 
-        options++; 
-
+    while (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+        
+        if (sscanf_s(buffer, "%d, %d", &length, &price) == 2) {
+            
+            if (length > 0 && price > 0) {
+                
+                lengths_and_prices[*number_of_options][LENGTH_INDEX] = length;
+                
+                lengths_and_prices[*number_of_options][PRICE_INDEX] = price;
+                
+                (*number_of_options)++;
+            } 
+        }
     }
-
-    return options;
 
 }
 
 
 /**********DISPLAY_USER_INPUT **********/
 /* This function displays information  */
-/* entered by the user                 */
+/* entered by the user for DEBUG       */
 /***************************************/
 
-void displayUserInput(int lengthsPrices[][ARR_DIM2], int options){
+void display_lengths_and_prices(int lengths_and_prices[][ARR_DIM2], int number_of_options){
 
 
     printf("\nLengths and Prices Entered\n");
     printf("=========================\n\n");
 
-    for (int i = 0; i < options; i++){
+    for (int current_cut = 0; current_cut < number_of_options; current_cut++){
 
-       printf("Length: %d, Price: %d\n", lengthsPrices[i][LENGTH], lengthsPrices[i][PRICE]);
+       printf("Length: %d, Price: %d\n", lengths_and_prices[current_cut][LENGTH_INDEX], lengths_and_prices[current_cut][PRICE_INDEX]);
        
     }
 }
 
 
-/**********DISPLAY_RESULTS *****************/
+/**********DISPLAY_CUT_LIST *****************/
 /* This function displays the cutting list */
 /* and the total value.                    */
 /*******************************************/
 
-void displayResults(int lengthsPrices[][2], int options, int bestPath[], int maximumValue){
+void display_cut_list(Cut_list* optimal_cut_list){
 
-    /* Displays results */
 
-    printf("\nCutting List:\n");
-    printf("==================\n\n");
+    for (int current_cut = 0; current_cut < optimal_cut_list->number_of_options; current_cut++){
 
-    for (int i = 0; i < options; i++){
+        if (optimal_cut_list->cut[current_cut].cut_count == 0){
+            
+            continue;
 
-        printf("%d @ %d = %d\n", bestPath[i], lengthsPrices[i][LENGTH], lengthsPrices[i][PRICE] * bestPath[i]); 
+        }
+
+        int cut_count = optimal_cut_list->cut[current_cut].cut_count; 
+
+        int cut_length = optimal_cut_list->cut[current_cut].cut_length;
+
+        int cut_total_value = optimal_cut_list->cut[current_cut].total_value_of_cut;
+
+        printf("%d @ %d = %d\n", cut_count, cut_length, cut_total_value); 
 
     }
 
-    printf("\nValue: %d\n\n", maximumValue);
+    printf("Remainder: %d\n", optimal_cut_list->remainder);
+
+    printf("Value: %d", optimal_cut_list->maximum_value_of_cuts);
 
 }
 
+
+/**********COPY_BEST_CUT_COUNTS****************/
+/* When a new maximum value is found, copies  */
+/* the current cut counts used to find that   */
+/* maximum value to the cut_count data field  */
+/* of each cut                                */
+/**********************************************/
+
+void copy_best_cut_counts(Cut_list* optimal_cut_list){
+
+    for (int current_cut = 0; current_cut < optimal_cut_list->number_of_options; current_cut++){
+
+        optimal_cut_list->cut[current_cut].cut_count = optimal_cut_list->current_cut_counter[current_cut]; 
+
+    }
+
+}
+
+/******CALCULATE_CUT_VALUES_AND_REMAINDER********/
+/* When a final maximum value of cuts is found, */
+/* calculates the total values of each cut and  */
+/* the remainder of rod length                  */
+/************************************************/
+
+
+void calculate_cut_values_and_remainders(Cut_list* optimal_cut_list){
+
+     optimal_cut_list->remainder = optimal_cut_list->rod_length;
+
+    for (int current_cut = 0; current_cut < optimal_cut_list->number_of_options; current_cut++){
+
+        /* The purpose of this pointer is to make the code more concise */
+
+        Cut *current_p = &optimal_cut_list->cut[current_cut];
+
+        current_p->total_value_of_cut = current_p->cut_price * current_p->cut_count;
+
+        optimal_cut_list->remainder -= current_p->cut_length * current_p->cut_count; 
+
+    }
+    
+}
+
+/**********GENERATE_CUT_LIST_STRUCT*********/
+/* This function generates the cut_list    */
+/* struct and initializes its values       */
+/*******************************************/
+
+Cut_list* generate_cut_list_struct(int lengths_and_prices[][ARR_DIM2], int number_of_options, int rod_length){
+
+    Cut_list* optimal_cut_list = (Cut_list*)malloc(sizeof(Cut_list));
+
+    optimal_cut_list->rod_length = rod_length; 
+
+    optimal_cut_list->remainder = rod_length; 
+
+    optimal_cut_list->maximum_value_of_cuts = 0;
+
+    optimal_cut_list->number_of_options = number_of_options;
+
+    optimal_cut_list->cut = (Cut*)malloc(sizeof(Cut) * number_of_options);
+
+    optimal_cut_list->current_cut_counter = (int*)malloc(sizeof(int) * number_of_options);
+
+    for (int i = 0; i < number_of_options; i++) {
+    
+        optimal_cut_list->current_cut_counter[i] = 0;
+    
+    }
+
+
+
+    for (int i = 0; i < number_of_options; i++) {
+    
+        optimal_cut_list->cut[i].cut_length = lengths_and_prices[i][LENGTH_INDEX];
+        
+        optimal_cut_list->cut[i].cut_price = lengths_and_prices[i][PRICE_INDEX];
+        
+        optimal_cut_list->cut[i].cut_count = 0;
+        
+        optimal_cut_list->cut[i].total_value_of_cut = 0;
+
+    }  
+
+    return optimal_cut_list;
+
+}
 

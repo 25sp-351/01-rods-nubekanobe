@@ -1,79 +1,119 @@
-# These are tests cases for rods.c (Solves Rod Cutting Problem)
+# Tests cases for rods.c (Solves Rod Cutting Problem)
 
-# Test Case 1: Program Accepts Intended Input 
+# Test Case 1: Program Accepts Valid Rod Lengths Only
 
 ### Description: 
-A test to verify that the user can input a rod size and series of lengths and prices separated by a comma. 
+A test to verify that the user must provide a valid integer input greater than 0
 
 ### Input: 
-- Rod Length: 10
-- Cuts: 3,3 ; 10,1 ; 2,11 
+./rods 0
+
+./rods -1
+
+./rods a
 
 ### Expected Output: 
-- Supplied Rod Length: 10 
-- Length: 3, Price: 3
-- Length: 10, Price: 1
-- Length: 2, Price: 11
+Indicates that a valid rod length was not provided and terminates the program. 
+
+### Actual Output
+Failed to provide a valid rod length
+
+If the user enters an integer value followed by a character (100a), the program will consider
+the integer value (100) before the character (a) to be a valid input. 
+
+
+
+
+# Test Case 2: Program Accepts Valid Piece Sizes and Prices
+
+### Description: 
+A test to verify that the user must input piece sizes and prices greater than 0, seperated by a comma
+
+### Input: 
+./rods 100
+1, 2
+3 4
+5a, 6
+a7, 8
+9, 10a
+
+### Expected Output: 
+Program ignores any input which does not follow the specified format
 
 ### Actual Output
 
-Supplied Rod Length: 10
-
-Enter Different Sized Cuts and Prices
-Format is 'LENGTH, PRICE'
-Enter 'CTRL + D' or A Single Integer Value to Stop
+Lengths and Prices Entered 
 =========================
 
-3,3
-10,1
-2,11
-^D
+Length: 1, Price: 2
+Length: 9, Price: 10
 
-Lengths and Prices Entered
-=========================
-
-Length: 3, Price: 3
-Length: 10, Price: 1
-Length: 2, Price: 11
-
-Cutting List:
-==================
-
-0 @ 3 = 0
-0 @ 10 = 0
-1 @ 2 = 11
-
-Value: 55
+The program ignores any input that does not follow the specified format. 
+If a valid input is followed by a character (9, 10a), then the values 
+provided before the character will be treated as valid input and the 
+characte is ignored. 
 
 
-# Test Case 2: Program Outputs Correct Value 
+
+# Test Case 3: Program Outputs the Correct Maximum Value, Cutting List, and Remainder
+
+# 3.A 
 
 ### Description: 
-A test to verify that the program calculates the correct maximum value solution to the rod cutting problem  
+A test to verify that the correct values are calculated and displayed
 
 ### Input: 
-- Rod Length: 5
-- Cuts: 1,2 ; 2,1 ; 3,3
+./rods 100
+51, 97
+50, 48
+^Z
 
-### Expected Output:
-- Value: 10
+### Expected Output: 
+1 cut of size 51, for a total value of 97, with a remainder of 49
 
-### Actual Output:
-Value: 9
+### Actual Output: 
+1 @ 51 = 97
+Remainder: 49
+Value: 97
 
 
-
-# Test Case 2.1: Program Outputs Correct Value 
+# 3.B
 
 ### Description: 
-An slightly modified test to verify that the program calculates the correct maximum value solution to the rod cutting problem  
+A test to verify that the order of input does not affect the output and provide incorrect results
 
 ### Input: 
-- Rod Length: 5
-- Cuts: 1,1 ; 2,3 ; 3,6
+./rods 100
+50, 48
+51, 97
+^Z
 
-### Expected Output:
-- Value: 9
+### Expected Output: 
+1 cut of size 51, for a total value of 97, with a remainder of 49
 
-### Actual Output:
-Value: 9
+### Actual Output 
+1 @ 51 = 97
+Remainder: 49
+Value: 97
+
+
+# 3.C
+
+### Description: 
+A test to verify that a greater maximum value can be found when provided with an additional option
+
+### Input 
+./rods 100
+51, 97
+23, 10
+50, 48
+^Z
+
+### Expected Output: 
+1 cut of size 51 and 2 cuts of size 23, for a total value of 117, with a remainder of 3
+
+### Actual Output 
+1 @ 51 = 97
+2 @ 23 = 20
+Remainder: 3
+Value: 117
