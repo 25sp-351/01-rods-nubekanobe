@@ -21,7 +21,7 @@ typedef struct {
     int number_of_options; 
     int remainder;  
     int maximum_value_of_cuts;  
-    int* current_cut_counter; 
+    int* cut_counter; 
     Cut* cut; 
 
 } Cut_list; 
@@ -37,7 +37,7 @@ void solve_rods(Cut_list* optimal_cut_list, int remaining_length, int current_va
 
 void copy_best_cut_counts(Cut_list* optimal_cut_list);
 
-void calculate_cut_values_and_remainders(Cut_list* opimal_cut_list);
+void calculate_cut_values_and_remainder(Cut_list* opimal_cut_list);
 
 void display_cut_list(Cut_list* optimal_cut_list);
 
@@ -88,13 +88,13 @@ int main(int argc, char *argv[]){
     
     solve_rods(optimal_cut_list, remaining_length, current_value_of_cuts);
 
-    calculate_cut_values_and_remainders(optimal_cut_list); 
+    calculate_cut_values_and_remainder(optimal_cut_list); 
 
     display_cut_list(optimal_cut_list); 
 
     free(optimal_cut_list->cut);
 
-    free(optimal_cut_list->current_cut_counter); 
+    free(optimal_cut_list->cut_counter); 
 
     free(optimal_cut_list);
 
@@ -130,7 +130,7 @@ void solve_rods(Cut_list* optimal_cut_list, int remaining_length, int current_va
 
         if (optimal_cut_list->cut[current_cut].cut_length <= remaining_length){
 
-            optimal_cut_list->current_cut_counter[current_cut]++; 
+            optimal_cut_list->cut_counter[current_cut]++; 
 
             /* These variables are intended to simplify the parameters being passed for readability */
 
@@ -140,7 +140,7 @@ void solve_rods(Cut_list* optimal_cut_list, int remaining_length, int current_va
 
             solve_rods(optimal_cut_list, remaining_length_after_this_cut, value_of_cuts_after_this_cut);      
 
-            optimal_cut_list->current_cut_counter[current_cut]--; 
+            optimal_cut_list->cut_counter[current_cut]--; 
             
         }
 
@@ -245,7 +245,7 @@ void copy_best_cut_counts(Cut_list* optimal_cut_list){
 
     for (int current_cut = 0; current_cut < optimal_cut_list->number_of_options; current_cut++){
 
-        optimal_cut_list->cut[current_cut].cut_count = optimal_cut_list->current_cut_counter[current_cut]; 
+        optimal_cut_list->cut[current_cut].cut_count = optimal_cut_list->cut_counter[current_cut]; 
 
     }
 
@@ -258,7 +258,7 @@ void copy_best_cut_counts(Cut_list* optimal_cut_list){
 /************************************************/
 
 
-void calculate_cut_values_and_remainders(Cut_list* optimal_cut_list){
+void calculate_cut_values_and_remainder(Cut_list* optimal_cut_list){
 
      optimal_cut_list->remainder = optimal_cut_list->rod_length;
 
@@ -295,25 +295,25 @@ Cut_list* generate_cut_list_struct(int lengths_and_prices[][ARR_DIM2], int numbe
 
     optimal_cut_list->cut = (Cut*)malloc(sizeof(Cut) * number_of_options);
 
-    optimal_cut_list->current_cut_counter = (int*)malloc(sizeof(int) * number_of_options);
+    optimal_cut_list->cut_counter = (int*)malloc(sizeof(int) * number_of_options);
 
-    for (int i = 0; i < number_of_options; i++) {
+    for (int current_cut = 0; current_cut < number_of_options; current_cut++) {
     
-        optimal_cut_list->current_cut_counter[i] = 0;
+        optimal_cut_list->cut_counter[current_cut] = 0;
     
     }
 
 
 
-    for (int i = 0; i < number_of_options; i++) {
+    for (int current_cut = 0; current_cut < number_of_options; current_cut++) {
     
-        optimal_cut_list->cut[i].cut_length = lengths_and_prices[i][LENGTH_INDEX];
+        optimal_cut_list->cut[current_cut].cut_length = lengths_and_prices[current_cut][LENGTH_INDEX];
         
-        optimal_cut_list->cut[i].cut_price = lengths_and_prices[i][PRICE_INDEX];
+        optimal_cut_list->cut[current_cut].cut_price = lengths_and_prices[current_cut][PRICE_INDEX];
         
-        optimal_cut_list->cut[i].cut_count = 0;
+        optimal_cut_list->cut[current_cut].cut_count = 0;
         
-        optimal_cut_list->cut[i].total_value_of_cut = 0;
+        optimal_cut_list->cut[current_cut].total_value_of_cut = 0;
 
     }  
 
