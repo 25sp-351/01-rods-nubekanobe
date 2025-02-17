@@ -12,16 +12,30 @@ A test to verify that the user must provide a valid integer input greater than 0
 
 ./rods a
 
+./rods 100a
+
+./rods a100
+
 ### Expected Output: 
 Indicates that a valid rod length was not provided and terminates the program. 
 
+The program counts the 
+
 ### Actual Output
+./rods 0
 Failed to provide a valid rod length
 
-If the user enters an integer value followed by a character (100a), the program will consider
-the integer value (100) before the character (a) to be a valid input. 
+./rods -1
+Failed to provide a valid rod length
 
+./rods a
+Failed to provide a valid rod length
 
+./rods 100a
+Failed to provide a valid rod length
+
+./rods a100
+Failed to provide a valid rod length
 
 
 # Test Case 2: Program Accepts Valid Piece Sizes and Prices
@@ -36,6 +50,8 @@ A test to verify that the user must input piece sizes and prices greater than 0,
 5a, 6
 a7, 8
 9, 10a
+-10, 11
+10, -11
 
 ### Expected Output: 
 Program ignores any input which does not follow the specified format
@@ -51,7 +67,7 @@ Length: 9, Price: 10
 The program ignores any input that does not follow the specified format. 
 If a valid input is followed by a character (9, 10a), then the values 
 provided before the character will be treated as valid input and the 
-characte is ignored. 
+character is ignored. 
 
 
 
